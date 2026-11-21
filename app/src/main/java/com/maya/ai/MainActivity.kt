@@ -198,7 +198,7 @@ val cleanReply = reply
     .trim()
 
 messageState.value = cleanReply
-                .replace(Regex("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+"), "")
+(Regex("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+"), "")
                 if (ttsReady) {
     val lowerReply = reply.lowercase()
 
