@@ -64,7 +64,10 @@ class MainActivity : ComponentActivity() {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this)
 
             recognizer?.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech
+                override fun onReadyForSpeech(params: Bundle?) {
+    messageState.value = "जी, बोलिए। मैं सुन रही हूँ..."
+                }
+                }
                 override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(rmsdB: Float) {}
                 override fun onBufferReceived(buffer: ByteArray?) {}
