@@ -103,7 +103,26 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
+private fun startMayaService() {
+    val serviceIntent = Intent(
+        this,
+        MayaListeningService::class.java
+    )
 
+    if (ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+    ) {
+        ContextCompat.startForegroundService(
+            this,
+            serviceIntent
+        )
+        messageState.value = "MAYA Voice Service चालू है।"
+    } else {
+        checkMicrophonePermission()
+    }
+}
     private fun checkMicrophonePermission() {
         if (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.RECORD_AUDIO
