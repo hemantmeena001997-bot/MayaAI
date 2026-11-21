@@ -195,12 +195,36 @@ class MainActivity : ComponentActivity() {
                 messageState.value = reply
 
                 if (ttsReady) {
-                    speaker?.speak(
-                        reply,
-                        TextToSpeech.QUEUE_FLUSH,
-                        null,
-                        "maya_reply"
-                    )
+    val lowerReply = reply.lowercase()
+
+    val happy = listOf("बहुत अच्छा", "शानदार", "खुशी", "वाह")
+        .any { lowerReply.contains(it) }
+
+    val caring = listOf("चिंता", "परेशान", "दुख", "माफ़")
+        .any { lowerReply.contains(it) }
+
+    speaker?.setPitch(
+        when {
+            happy -> 1.15f
+            caring -> 0.95f
+            else -> 1.05f
+        }
+    )
+
+    speaker?.setSpeechRate(
+        when {
+            happy -> 0.98f
+            caring -> 0.88f
+            else -> 0.93f
+        }
+    )
+
+    speaker?.speak(
+        reply,
+        TextToSpeech.QUEUE_FLUSH,
+        null,
+        "maya_reply"
+    )
                 }
             } catch (e: Exception) {
                 messageState.value =
