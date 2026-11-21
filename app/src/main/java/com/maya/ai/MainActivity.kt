@@ -65,7 +65,12 @@ class MainActivity : ComponentActivity() {
 
             recognizer?.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
-                    messageState.value = "जी, बोलिए। मैं सुन रही हूँ..."
+                    val cleanReply = reply
+    .replace(Regex("[*_#`~]"), "")
+    .replace(Regex("(?m)^\\s*[-•]\\s*"), "")
+    .trim()
+
+messageState.value = cleanReply
                 }
 
                 override fun onBeginningOfSpeech() {}
