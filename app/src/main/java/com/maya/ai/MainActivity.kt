@@ -131,8 +131,9 @@ private fun startMayaService() {
                 this, Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            startListening()
-        } else {
+    startMayaService()
+    startListening()
+} else {
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
