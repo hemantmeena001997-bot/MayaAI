@@ -225,7 +225,7 @@ messageState.value = cleanReply
     )
 
     speaker?.speak(
-        reply,
+        cleanReply,
         TextToSpeech.QUEUE_FLUSH,
         null,
         "maya_reply"
