@@ -190,7 +190,12 @@ class MainActivity : ComponentActivity() {
                         connection.disconnect()
                     }
                 }
+val cleanReply = reply
+    .replace(Regex("[*_#`~]"), "")
+    .replace(Regex("(?m)^\\s*[-•]\\s*"), "")
+    .trim()
 
+messageState.value = cleanReply
                 if (ttsReady) {
     val lowerReply = reply.lowercase()
 
