@@ -45,7 +45,10 @@ class MainActivity : ComponentActivity() {
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) startListening()
+            if (granted) {
+    startMayaService()
+    startListening()
+            }
             else messageState.value = "माइक्रोफोन की अनुमति जरूरी है।"
         }
 
