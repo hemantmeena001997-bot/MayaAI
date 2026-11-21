@@ -193,9 +193,12 @@ class MainActivity : ComponentActivity() {
 val cleanReply = reply
     .replace(Regex("[*_#`~]"), "")
     .replace(Regex("(?m)^\\s*[-•]\\s*"), "")
+    .replace(Regex("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+"), "")
+    .replace(Regex("\\s+"), " ")
     .trim()
 
 messageState.value = cleanReply
+                .replace(Regex("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+"), "")
                 if (ttsReady) {
     val lowerReply = reply.lowercase()
 
