@@ -64,17 +64,7 @@ class MainActivity : ComponentActivity() {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this)
 
             recognizer?.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {
-    messageState.value = "जी, बोलिए। मैं सुन रही हूँ..."
-                }
-                    val cleanReply = reply
-    .replace(Regex("[*_#`~]"), "")
-    .replace(Regex("(?m)^\\s*[-•]\\s*"), "")
-    .trim()
-
-messageState.value = cleanReply
-                }
-
+                override fun onReadyForSpeech
                 override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(rmsdB: Float) {}
                 override fun onBufferReceived(buffer: ByteArray?) {}
@@ -198,13 +188,6 @@ messageState.value = cleanReply
                         connection.disconnect()
                     }
                 }
-
-                val cleanReply = reply
-    .replace(Regex("[*_#`~]"), "")
-    .replace(Regex("(?m)^\\s*[-•]\\s*"), "")
-    .trim()
-
-messageState.value = cleanReply
 
                 if (ttsReady) {
     val lowerReply = reply.lowercase()
