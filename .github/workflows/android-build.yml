@@ -30,7 +30,13 @@ jobs:
           mkdir -p app/libs
           curl -fL https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3/sherpa-onnx-2.0.3.aar -o app/libs/sherpa-onnx-2.0.3.aar
           ls -lh app/libs/sherpa-onnx-2.0.3.aar
-
+      - name: Download MAYA Wake Word Model
+        run: |
+          MODEL=sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01
+          mkdir -p app/src/main/assets/$MODEL
+          curl -fL https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/$MODEL.tar.bz2 -o model.tar.bz2
+          tar -xjf model.tar.bz2 -C app/src/main/assets/
+          rm model.tar.bz2
       - name: Build MAYA APK
         run: gradle :app:assembleDebug
 
