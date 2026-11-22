@@ -1,12 +1,3 @@
-hello
-hi
-namaste
-नमस्ते
-maya
-माया
-kaise ho
-कैसे हो
-good morning
-शुभ प्रभात
-good night
-शुभ रात्रि
+
+hey maya
+हे माया
