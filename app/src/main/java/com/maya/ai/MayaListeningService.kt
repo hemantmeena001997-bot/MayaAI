@@ -69,7 +69,10 @@ const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
 
         running = true
 
-        audioThread = Thread {
+        audioThread = Thread {if (wakeWordDetected) {
+    sendBroadcast(Intent(ACTION_WAKE_WORD).setPackage(packageName))
+        }
+            var wakeWordDetected = false
             Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
 
             try {
@@ -140,23 +143,8 @@ const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
 
                             if (result.keyword.isNotEmpty()) {
     updateNotification("HEY MAYA पहचाना गया!")
-
+    wakeWordDetected = true
     running = false
-
-    try {
-        recorder.stop()
-    } catch (_: Exception) {
-    }
-
-    recorder.release()
-    audioRecord = null
-
-    spotter!!.reset(stream)
-
-    sendBroadcast(
-        Intent(ACTION_WAKE_WORD).setPackage(packageName)
-    )
-
     break
                             }
                         }
@@ -183,6 +171,9 @@ const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
                 audioRecord = null
                 spotter?.release()
                 spotter = null
+            }
+            if (wakeWordDetected) {
+    sendBroadcast(Intent(ACTION_WAKE_WORD).setPackage(packageName))
             }
         }
 
