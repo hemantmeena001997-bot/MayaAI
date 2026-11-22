@@ -88,7 +88,31 @@ class KeywordSpotter(
     }
 }
 
+
 fun getKwsModelConfig(type: Int): OnlineModelConfig? {
+    if (type != 1) return null
+
+    val modelDir = "gigaspeech-model"
+
+    return OnlineModelConfig(
+        transducer = OnlineTransducerModelConfig(
+            encoder = "$modelDir/encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
+            decoder = "$modelDir/decoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
+            joiner = "$modelDir/joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx"
+        ),
+        tokens = "$modelDir/tokens.txt",
+        modelType = "zipformer2"
+    )
+}
+
+fun getKeywordsFile(type: Int): String {
+    return if (type == 1) {
+        "gigaspeech-model/keywords.txt"
+    } else {
+        ""
+    }
+}
+
     when (type) {
         0 -> {
             val modelDir = "sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01"
