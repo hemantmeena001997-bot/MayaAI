@@ -36,4 +36,5 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     debugImplementation("androidx.compose.ui:ui-tooling")
+implementation(files("libs/sherpa-onnx-2.0.3.aar"))
 }
