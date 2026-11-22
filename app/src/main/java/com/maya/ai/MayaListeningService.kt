@@ -22,11 +22,11 @@ import com.k2fsa.sherpa.onnx.getKeywordsFile
 
 class MayaListeningService : Service() {
 
-    companion object {
+        companion object {
         const val CHANNEL_ID = "maya_listening_channel"
         const val NOTIFICATION_ID = 1001
-    }
-const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
+        const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
+        }
     @Volatile
     private var running = false
 
@@ -69,9 +69,7 @@ const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
 
         running = true
 
-        audioThread = Thread {if (wakeWordDetected) {
-    sendBroadcast(Intent(ACTION_WAKE_WORD).setPackage(packageName))
-        }
+        audioThread = Thread {
             var wakeWordDetected = false
             Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
 
