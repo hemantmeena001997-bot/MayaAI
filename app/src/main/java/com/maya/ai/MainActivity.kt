@@ -1,5 +1,7 @@
 package com.maya.ai
-
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -31,7 +33,12 @@ import java.net.URL
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
-
+private val wakeWordReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        messageState.value = "जी, बोलिए। मैं सुन रही हूँ..."
+        startListening()
+    }
+}
     private val messageState =
         mutableStateOf("नमस्ते! मैं MAYA हूँ। कुछ भी पूछिए।")
 
@@ -54,7 +61,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+androidx.core.content.ContextCompat.registerReceiver(
+    this,
+    wakeWordReceiver,
+    android.content.IntentFilter(MayaListeningService.ACTION_WAKE_WORD),
+    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+)
         speaker = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 val result = speaker?.setLanguage(Locale("hi", "IN"))
