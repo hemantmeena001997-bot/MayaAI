@@ -1,4 +1,5 @@
-name: MAYA AI Build
+
+name: MAYA Android APK
 
 on:
   workflow_dispatch:
@@ -9,9 +10,33 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Show MAYA AI setup
-        run: echo "MAYA AI setup successful"
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Download Sherpa ONNX
+        run: |
+          mkdir -p app/libs
+          curl -L https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3/sherpa-onnx-2.0.3.aar -o app/libs/sherpa-onnx-2.0.3.aar
+
+      - name: Build MAYA APK
+        run: gradle :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MAYA-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
