@@ -1,0 +1,17 @@
+name: MAYA AI Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Show MAYA AI setup
+        run: echo "MAYA AI setup successful"
