@@ -54,7 +54,6 @@ private val wakeWordReceiver = object : BroadcastReceiver() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
     startMayaService()
-    startListening()
             }
             else messageState.value = "माइक्रोफोन की अनुमति जरूरी है।"
         }
@@ -144,7 +143,6 @@ private fun startMayaService() {
             ) == PackageManager.PERMISSION_GRANTED
         ) {
     startMayaService()
-    startListening()
 } else {
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
@@ -273,6 +271,7 @@ messageState.value = cleanReply
     }
 
     override fun onDestroy() {
+        unregisterReceiver(wakeWordReceiver)
         scope.cancel()
         recognizer?.destroy()
         speaker?.stop()
