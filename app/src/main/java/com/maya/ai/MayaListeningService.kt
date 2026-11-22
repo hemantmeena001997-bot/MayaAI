@@ -26,7 +26,7 @@ class MayaListeningService : Service() {
         const val CHANNEL_ID = "maya_listening_channel"
         const val NOTIFICATION_ID = 1001
     }
-
+const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
     @Volatile
     private var running = false
 
@@ -139,10 +139,25 @@ class MayaListeningService : Service() {
                             val result = spotter!!.getResult(stream)
 
                             if (result.keyword.isNotEmpty()) {
-                                updateNotification(
-                                    "HEY MAYA पहचाना गया! MAYA जाग गई है।"
-                                )
-                                spotter!!.reset(stream)
+    updateNotification("HEY MAYA पहचाना गया!")
+
+    running = false
+
+    try {
+        recorder.stop()
+    } catch (_: Exception) {
+    }
+
+    recorder.release()
+    audioRecord = null
+
+    spotter!!.reset(stream)
+
+    sendBroadcast(
+        Intent(ACTION_WAKE_WORD).setPackage(packageName)
+    )
+
+    break
                             }
                         }
                     }
