@@ -14,7 +14,7 @@ import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+import androidx.compose..background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -96,7 +96,10 @@ androidx.core.content.ContextCompat.registerReceiver(
         startListening()
     }
                 }
-
+            }
+        )
+            }
+        }
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this)
 
@@ -198,6 +201,7 @@ private fun startMayaService() {
 
         try {
             messageState.value = "माइक्रोफोन शुरू हो रहा है..."
+            recognizer?.cancel()
             recognizer?.startListening(intent)
         } catch (e: Exception) {
             messageState.value = "माइक्रोफोन शुरू नहीं हो पाया।"
