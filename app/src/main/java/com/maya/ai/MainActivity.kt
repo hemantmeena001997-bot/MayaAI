@@ -46,6 +46,7 @@ private val wakeWordReceiver = object : BroadcastReceiver() {
     private var recognizer: SpeechRecognizer? = null
     private var speaker: TextToSpeech? = null
     private var ttsReady = false
+    private var isMayaSpeaking = false
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val workerUrl =
