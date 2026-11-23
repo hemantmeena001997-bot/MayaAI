@@ -107,7 +107,17 @@ androidx.core.content.ContextCompat.registerReceiver(
                 }
 
                 override fun onError(error: Int) {
-    messageState.value = "Speech Error Code: $error"
+    messageState.value = when (error) {
+        1 -> "नेटवर्क में समस्या है।"
+        2 -> "इंटरनेट उपलब्ध नहीं है।"
+        3 -> "ऑडियो रिकॉर्डिंग में समस्या है।"
+        5 -> "आवाज़ रिकॉर्ड नहीं हो पाई।"
+        6 -> "कृपया जल्दी बोलिए।"
+        7 -> "माफ कीजिए, मैं समझ नहीं पाई। दोबारा बोलिए।"
+        8 -> "Speech Recognizer उपलब्ध नहीं है।"
+        9 -> "माइक्रोफोन की अनुमति नहीं है।"
+        else -> "Speech Error Code: $error"
+    }
                 }
 
                 override fun onResults(results: Bundle?) {
