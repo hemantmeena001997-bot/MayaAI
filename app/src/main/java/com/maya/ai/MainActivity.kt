@@ -1,4 +1,5 @@
 package com.maya.ai
+import android.speech.tts.UtteranceProgressListener
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.IntentFilter
@@ -67,11 +68,27 @@ androidx.core.content.ContextCompat.registerReceiver(
     androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
 )
         speaker = TextToSpeech(this) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                val result = speaker?.setLanguage(Locale("hi", "IN"))
-                ttsReady = result != TextToSpeech.LANG_MISSING_DATA &&
-                    result != TextToSpeech.LANG_NOT_SUPPORTED
+    if (status == TextToSpeech.SUCCESS) {
+        val result = speaker?.setLanguage(Locale("hi", "IN"))
+
+        ttsReady = result != TextToSpeech.LANG_MISSING_DATA &&
+            result != TextToSpeech.LANG_NOT_SUPPORTED
+
+        speaker?.setOnUtteranceProgressListener(
+            object : UtteranceProgressListener() {
+
+                override fun onStart(utteranceId: String?) {}
+
+                override fun onDone(utteranceId: String?) {
+                    runOnUiThread {
+                        startMayaService()
+                    }
+                }
+
+                override fun onError(utteranceId: String?) {}
             }
+        )
+    }
         }
 
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
