@@ -221,8 +221,8 @@ androidx.core.content.ContextCompat.registerReceiver(
 
                     try {
                         connection.requestMethod = "POST"
-                        connection.connectTimeout = 15000
-                        connection.readTimeout = 30000
+                        connection.connectTimeout = 30000
+                        connection.readTimeout = 60000
                         connection.doOutput = true
                         connection.setRequestProperty(
                             "Content-Type", "application/json"
