@@ -119,7 +119,7 @@ class MayaListeningService : Service() {
                 recorder.startRecording()
 
                 val shortBuffer = ShortArray(1024)
-
+var audioDetected = false
                 while (running) {
                     val count = recorder.read(
                         shortBuffer,
@@ -128,6 +128,10 @@ class MayaListeningService : Service() {
                     )
 
                     if (count > 0) {
+                            if (!audioDetected) {
+    updateNotification("माइक्रोफोन आवाज़ पढ़ रहा है")
+    audioDetected = true
+                            }
                         val samples = FloatArray(count) { i ->
                             shortBuffer[i] / 32768.0f
                         }
