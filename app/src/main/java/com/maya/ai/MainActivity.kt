@@ -153,6 +153,7 @@ androidx.core.content.ContextCompat.registerReceiver(
             )
         }
     }
+    checkMicrophonePermission()
 private fun startMayaService() {
     val serviceIntent = Intent(
         this,
