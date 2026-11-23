@@ -82,7 +82,7 @@ class MayaListeningService : Service() {
                     modelConfig = modelConfig,
                     keywordsFile = getKeywordsFile(1),
                     keywordsScore = 1.5f,
-                    keywordsThreshold = 0.25f
+                    keywordsThreshold = 0.20f
                 )
 
                 spotter = KeywordSpotter(
