@@ -107,7 +107,7 @@ androidx.core.content.ContextCompat.registerReceiver(
                 }
 
                 override fun onError(error: Int) {
-                    messageState.value = "आवाज़ समझ नहीं आई। दोबारा कोशिश करें।"
+    messageState.value = "Speech Error Code: $error"
                 }
 
                 override fun onResults(results: Bundle?) {
