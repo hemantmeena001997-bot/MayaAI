@@ -151,10 +151,11 @@ androidx.core.content.ContextCompat.registerReceiver(
                 message = messageState.value,
                 onTalk = { checkMicrophonePermission() }
             )
-        }
+                }
+        checkMicrophonePermission()
     }
-    checkMicrophonePermission()
-private fun startMayaService() {
+
+    private fun startMayaService() {
     val serviceIntent = Intent(
         this,
         MayaListeningService::class.java
