@@ -78,19 +78,24 @@ androidx.core.content.ContextCompat.registerReceiver(
         speaker?.setOnUtteranceProgressListener(
             object : UtteranceProgressListener() {
 
-                override fun onStart(utteranceId: String?) {}
-
-                override fun onDone(utteranceId: String?) {
-                    runOnUiThread {
-                        startMayaService()
-                    }
+                override fun onStart(utteranceId: String?) {
+    isMayaSpeaking = true
                 }
 
-                override fun onError(utteranceId: String?) {}
-            }
-        )
+                override fun onDone(utteranceId: String?) {
+    runOnUiThread {
+        isMayaSpeaking = false
+        startListening()
     }
-        }
+                }
+
+                override fun onError(utteranceId: String?) {
+    runOnUiThread {
+        isMayaSpeaking = false
+        messageState.value = "माफ कीजिए, फिर से बोलिए।"
+        startListening()
+    }
+                }
 
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this)
