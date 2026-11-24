@@ -32,6 +32,9 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 
 class MainActivity : ComponentActivity() {
 private val wakeWordReceiver = object : BroadcastReceiver() {
@@ -384,11 +387,15 @@ fun MayaScreen(message: String, onTalk: () -> Unit) {
                 shape = RoundedCornerShape(18.dp)
             ) {
                 Text(
-                    message,
-                    modifier = Modifier.padding(20.dp),
-                    color = Color.White,
-                    fontSize = 16.sp
-                )
+    message,
+    modifier = Modifier
+        .fillMaxWidth()
+        .heightIn(max = 500.dp)
+        .verticalScroll(rememberScrollState())
+        .padding(20.dp),
+    color = Color.White,
+    fontSize = 16.sp
+)
             }
 
             Spacer(Modifier.height(25.dp))
