@@ -36,8 +36,9 @@ import com.k2fsa.sherpa.onnx.getKeywordsFile
 class MayaListeningService : Service() {
 
     companion object {
-        const val CHANNEL_ID = "maya_listening_channel"
-        const val NOTIFICATION_ID = 1001
+    const val CHANNEL_ID = "maya_listening_channel"
+    const val NOTIFICATION_ID = 1001
+    const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -161,12 +162,14 @@ class MayaListeningService : Service() {
                     keywordsThreshold = 0.20f
                 )
 
-                localSpotter = KeywordSpotter(
-                    assetManager = assets,
-                    config = config
-                )
+                val spotter = KeywordSpotter(
+    assetManager = assets,
+    config = config
+)
 
-                val stream = localSpotter.createStream()
+localSpotter = spotter
+
+val stream = spotter.createStream()
 
                 try {
                     val minBuffer = AudioRecord.getMinBufferSize(
