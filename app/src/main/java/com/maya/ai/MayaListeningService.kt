@@ -217,6 +217,7 @@ val stream = spotter.createStream()
                             val samples = FloatArray(count) { i ->
                                 shortBuffer[i] / 32768.0f
                             }
+                            android.util.Log.d("MAYA_AUDIO", "Audio samples received: $count")
 
                             stream.acceptWaveform(samples, 16000)
 
