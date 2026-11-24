@@ -37,12 +37,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.heightIn
 
 class MainActivity : ComponentActivity() {
-private val wakeWordReceiver = object : BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent?) {
-        messageState.value = "जी, बोलिए। मैं सुन रही हूँ..."
-        startListening()
-    }
-}
+
     private val messageState =
         mutableStateOf("नमस्ते! मैं MAYA हूँ। कुछ भी पूछिए।")
 
@@ -65,12 +60,7 @@ private val wakeWordReceiver = object : BroadcastReceiver() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-androidx.core.content.ContextCompat.registerReceiver(
-    this,
-    wakeWordReceiver,
-    android.content.IntentFilter(MayaListeningService.ACTION_WAKE_WORD),
-    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
-)
+
         speaker = TextToSpeech(this) { status ->
     if (status == TextToSpeech.SUCCESS) {
         val result = speaker?.setLanguage(Locale("hi", "IN"))
@@ -313,7 +303,7 @@ messageState.value = cleanReply
     }
 
     override fun onDestroy() {
-        unregisterReceiver(wakeWordReceiver)
+        
         scope.cancel()
         recognizer?.destroy()
         speaker?.stop()
