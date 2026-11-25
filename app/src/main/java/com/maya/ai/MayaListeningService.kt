@@ -54,6 +54,11 @@ class MayaListeningService : Service() {
     private var speaker: TextToSpeech? = null
 
     private var ttsReady = false
+    @Volatile
+    private var conversationMode = false
+private val conversationTimeout = 30_000L
+private val conversationHandler = Handler(Looper.getMainLooper())
+private var conversationRunnable: Runnable? = null
     private var pendingSpeech: String? = null
 
     private val workerUrl =
@@ -106,16 +111,26 @@ class MayaListeningService : Service() {
                         override fun onStart(utteranceId: String?) {}
 
                         override fun onDone(utteranceId: String?) {
-                            mainHandler.post {
-                                startWakeWordListening()
-                            }
+    mainHandler.post {
+        if (conversationMode) {
+            startCommandListening()
+        } else {
+            startWakeWordListening()
+        }
+    }
                         }
 
-                        override fun onError(utteranceId: String?) {
-                            mainHandler.post {
-                                startWakeWordListening()
-                            }
-                        }
+                        
+override fun onError(utteranceId: String?) {
+    mainHandler.post {
+        if (conversationMode) {
+            startCommandListening()
+        } else {
+            startWakeWordListening()
+        }
+    }
+}
+
                     }
                 )
 
@@ -128,7 +143,40 @@ class MayaListeningService : Service() {
         }
     }
 
-    private fun startWakeWordListening() {
+        
+private fun cancelConversationTimeout() {
+    conversationRunnable?.let {
+        conversationHandler.removeCallbacks(it)
+    }
+    conversationRunnable = null
+}
+
+private fun resetConversationTimeout() {
+    cancelConversationTimeout()
+
+    val timeoutTask = Runnable {
+        conversationRunnable = null
+
+        if (conversationMode) {
+            conversationMode = false
+
+            recognizer?.cancel()
+            recognizer?.destroy()
+            recognizer = null
+
+            updateNotification("MAYA फिर से Wake Word सुन रही है...")
+            startWakeWordListening()
+        }
+    }
+
+    conversationRunnable = timeoutTask
+    conversationHandler.postDelayed(
+        timeoutTask,
+        conversationTimeout
+    )
+}
+
+private fun startWakeWordListening() {
 
         if (wakeListening) return
 
@@ -230,6 +278,7 @@ val stream = spotter.createStream()
 
                                     detected = true
                                     wakeListening = false
+                                    conversationMode = true
 
                                     updateNotification(
                                         "HELLO MAYA पहचाना गया!"
@@ -284,110 +333,127 @@ val stream = spotter.createStream()
         audioThread?.start()
     }
 
-    private fun startCommandListening() {
+    
 
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            updateNotification("Speech Recognition उपलब्ध नहीं है")
-            startWakeWordListening()
-            return
-        }
+private fun startCommandListening() {
 
-        updateNotification("जी, बोलिए। मैं सुन रही हूँ...")
-
-        try {
-            recognizer?.destroy()
-
-            recognizer = SpeechRecognizer.createSpeechRecognizer(this)
-
-            recognizer?.setRecognitionListener(
-                object : RecognitionListener {
-
-                    override fun onReadyForSpeech(params: android.os.Bundle?) {
-                        updateNotification("जी, बोलिए...")
-                    }
-
-                    override fun onBeginningOfSpeech() {}
-
-                    override fun onRmsChanged(rmsdB: Float) {}
-
-                    override fun onBufferReceived(buffer: ByteArray?) {}
-
-                    override fun onEndOfSpeech() {
-                        updateNotification("आपकी बात समझ रही हूँ...")
-                    }
-
-                    override fun onError(error: Int) {
-                        recognizer?.destroy()
-                        recognizer = null
-
-                        updateNotification("फिर से सुनने के लिए तैयार हूँ")
-
-                        mainHandler.postDelayed({
-                            startWakeWordListening()
-                        }, 1000)
-                    }
-
-                    override fun onResults(results: android.os.Bundle?) {
-
-                        val words = results
-                            ?.getStringArrayList(
-                                SpeechRecognizer.RESULTS_RECOGNITION
-                            )
-                            ?.firstOrNull()
-
-                        recognizer?.destroy()
-                        recognizer = null
-
-                        if (!words.isNullOrBlank()) {
-                            askMaya(words)
-                        } else {
-                            speakReply("माफ कीजिए, फिर से बोलिए।")
-                        }
-                    }
-
-                    override fun onPartialResults(
-                        partialResults: android.os.Bundle?
-                    ) {}
-
-                    override fun onEvent(
-                        eventType: Int,
-                        params: android.os.Bundle?
-                    ) {}
-                }
-            )
-
-            val intent = Intent(
-                RecognizerIntent.ACTION_RECOGNIZE_SPEECH
-            ).apply {
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                )
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE,
-                    "hi-IN"
-                )
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,
-                    "hi-IN"
-                )
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            }
-
-            recognizer?.startListening(intent)
-
-        } catch (e: Exception) {
-
-            recognizer?.destroy()
-            recognizer = null
-
-            updateNotification("सुनने में समस्या हुई")
-
-            mainHandler.postDelayed({
-                startWakeWordListening()
-            }, 1000)
-        }
+    if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+        updateNotification("Speech Recognition उपलब्ध नहीं है")
+        cancelConversationTimeout()
+        conversationMode = false
+        startWakeWordListening()
+        return
     }
+
+    updateNotification("जी, बोलिए। मैं सुन रही हूँ...")
+
+    try {
+        recognizer?.destroy()
+        recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+
+        recognizer?.setRecognitionListener(
+            object : RecognitionListener {
+
+                override fun onReadyForSpeech(params: android.os.Bundle?) {
+                    updateNotification("जी, बोलिए...")
+                }
+
+                override fun onBeginningOfSpeech() {
+                    cancelConversationTimeout()
+                }
+
+                override fun onRmsChanged(rmsdB: Float) {}
+
+                override fun onBufferReceived(buffer: ByteArray?) {}
+
+                override fun onEndOfSpeech() {
+    updateNotification("आपकी बात समझ रही हूँ...")
+    if (conversationMode) {
+        resetConversationTimeout()
+    }
+                }
+
+                override fun onError(error: Int) {
+                    recognizer?.destroy()
+                    recognizer = null
+
+                    updateNotification("फिर से सुनने के लिए तैयार हूँ")
+
+                    mainHandler.postDelayed({
+                        if (conversationMode) {
+                            startCommandListening()
+                        } else {
+                            startWakeWordListening()
+                        }
+                    }, 1000)
+                }
+
+                override fun onResults(results: android.os.Bundle?) {
+
+                    val words = results
+                        ?.getStringArrayList(
+                            SpeechRecognizer.RESULTS_RECOGNITION
+                        )
+                        ?.firstOrNull()
+
+                    recognizer?.destroy()
+                    recognizer = null
+
+                    cancelConversationTimeout()
+
+                    if (!words.isNullOrBlank()) {
+                        askMaya(words)
+                    } else {
+                        speakReply("माफ कीजिए, फिर से बोलिए।")
+                    }
+                }
+
+                override fun onPartialResults(
+                    partialResults: android.os.Bundle?
+                ) {}
+
+                override fun onEvent(
+                    eventType: Int,
+                    params: android.os.Bundle?
+                ) {}
+            }
+        )
+
+        val intent = Intent(
+            RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+        ).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "hi-IN")
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        }
+
+        recognizer?.startListening(intent)
+
+        if (conversationMode && conversationRunnable == null) {
+            resetConversationTimeout()
+        }
+
+    } catch (e: Exception) {
+
+        recognizer?.destroy()
+        recognizer = null
+
+        updateNotification("सुनने में समस्या हुई")
+
+        mainHandler.postDelayed({
+            if (conversationMode) {
+                startCommandListening()
+            } else {
+                startWakeWordListening()
+            }
+        }, 1000)
+    }
+}
+
 
     private fun askMaya(question: String) {
 
@@ -535,25 +601,31 @@ val stream = spotter.createStream()
         }
     }
 
-    override fun onDestroy() {
+    
+override fun onDestroy() {
 
-        wakeListening = false
+    wakeListening = false
+    conversationMode = false
 
-        try {
-            audioRecord?.stop()
-        } catch (_: Exception) {}
+    cancelConversationTimeout()
+    conversationHandler.removeCallbacksAndMessages(null)
 
-        recognizer?.destroy()
-        recognizer = null
+    try {
+        audioRecord?.stop()
+    } catch (_: Exception) {}
 
-        speaker?.stop()
-        speaker?.shutdown()
-        speaker = null
+    recognizer?.cancel()
+    recognizer?.destroy()
+    recognizer = null
 
-        networkExecutor.shutdownNow()
+    speaker?.stop()
+    speaker?.shutdown()
+    speaker = null
 
-        super.onDestroy()
-    }
+    networkExecutor.shutdownNow()
+
+    super.onDestroy()
+}
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
