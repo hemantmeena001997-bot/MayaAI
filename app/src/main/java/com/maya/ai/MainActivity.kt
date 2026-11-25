@@ -1,23 +1,22 @@
+
 package com.maya.ai
-import android.speech.tts.UtteranceProgressListener
+
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.IntentFilter
-import android.Manifest
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
-import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,116 +26,49 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.*
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.Locale
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.heightIn
 
 class MainActivity : ComponentActivity() {
 
-    private val messageState =
-        mutableStateOf("नमस्ते! मैं MAYA हूँ। कुछ भी पूछिए।")
+    private val messageState = mutableStateOf(
+        "नमस्ते! मैं MAYA हूँ। कुछ भी पूछिए।"
+    )
 
-    private var recognizer: SpeechRecognizer? = null
-    private var speaker: TextToSpeech? = null
-    private var ttsReady = false
-    private var isMayaSpeaking = false
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var receiverRegistered = false
 
-    private val workerUrl =
-        "https://maya-ai-brain.hemantmeena001997.workers.dev/"
+    private val mayaReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == MayaListeningService.ACTION_UI_UPDATE) {
+                val message = intent.getStringExtra(
+                    MayaListeningService.EXTRA_MESSAGE
+                )
+                if (!message.isNullOrBlank()) {
+                    messageState.value = message
+                }
+            }
+        }
+    }
 
     private val permissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
             if (granted) {
-    startMayaService()
+                startMayaService()
+            } else {
+                messageState.value = "माइक्रोफोन की अनुमति जरूरी है।"
             }
-            else messageState.value = "माइक्रोफोन की अनुमति जरूरी है।"
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        speaker = TextToSpeech(this) { status ->
-    if (status == TextToSpeech.SUCCESS) {
-        val result = speaker?.setLanguage(Locale("hi", "IN"))
+        val savedReply = getSharedPreferences(
+            "maya_data",
+            MODE_PRIVATE
+        ).getString("last_reply", null)
 
-        ttsReady = result != TextToSpeech.LANG_MISSING_DATA &&
-            result != TextToSpeech.LANG_NOT_SUPPORTED
-
-        speaker?.setOnUtteranceProgressListener(
-            object : UtteranceProgressListener() {
-
-                override fun onStart(utteranceId: String?) {
-    isMayaSpeaking = true
-                }
-
-                override fun onDone(utteranceId: String?) {
-    runOnUiThread {
-        isMayaSpeaking = false
-        startListening()
-    }
-                }
-
-                override fun onError(utteranceId: String?) {
-    runOnUiThread {
-        isMayaSpeaking = false
-        messageState.value = "माफ कीजिए, फिर से बोलिए।"
-        startListening()
-    }
-                }
-            }
-        )
-            }
-        }
-        if (SpeechRecognizer.isRecognitionAvailable(this)) {
-            recognizer = SpeechRecognizer.createSpeechRecognizer(this)
-
-            recognizer?.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {
-    messageState.value = "जी, बोलिए। मैं सुन रही हूँ..."
-                }
-                override fun onBeginningOfSpeech() {}
-                override fun onRmsChanged(rmsdB: Float) {}
-                override fun onBufferReceived(buffer: ByteArray?) {}
-
-                override fun onEndOfSpeech() {
-                    messageState.value = "आपकी बात समझ रही हूँ..."
-                }
-
-                override fun onError(error: Int) {
-    messageState.value = when (error) {
-        1 -> "नेटवर्क में समस्या है।"
-        2 -> "इंटरनेट उपलब्ध नहीं है।"
-        3 -> "ऑडियो रिकॉर्डिंग में समस्या है।"
-        5 -> "आवाज़ रिकॉर्ड नहीं हो पाई।"
-        6 -> "कृपया जल्दी बोलिए।"
-        7 -> "माफ कीजिए, मैं समझ नहीं पाई। दोबारा बोलिए।"
-        8 -> "Speech Recognizer उपलब्ध नहीं है।"
-        9 -> "माइक्रोफोन की अनुमति नहीं है।"
-        else -> "Speech Error Code: $error"
-    }
-                }
-
-                override fun onResults(results: Bundle?) {
-                    val words = results
-                        ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        ?.firstOrNull()
-
-                    if (!words.isNullOrBlank()) {
-                        askMaya(words)
-                    } else {
-                        messageState.value = "कृपया फिर से बोलिए।"
-                    }
-                }
-
-                override fun onPartialResults(partialResults: Bundle?) {}
-                override fun onEvent(eventType: Int, params: Bundle?) {}
-            })
+        if (!savedReply.isNullOrBlank()) {
+            messageState.value = savedReply
         }
 
         setContent {
@@ -144,176 +76,72 @@ class MainActivity : ComponentActivity() {
                 message = messageState.value,
                 onTalk = { checkMicrophonePermission() }
             )
-                }
+        }
+
         checkMicrophonePermission()
+    }
+
+    override fun onStart() {
+        super.onStart()
+
+        if (!receiverRegistered) {
+            ContextCompat.registerReceiver(
+                this,
+                mayaReceiver,
+                IntentFilter(MayaListeningService.ACTION_UI_UPDATE),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            receiverRegistered = true
+        }
+    }
+
+    override fun onStop() {
+        if (receiverRegistered) {
+            unregisterReceiver(mayaReceiver)
+            receiverRegistered = false
+        }
+        super.onStop()
+    }
+
+    private fun checkMicrophonePermission() {
+        if (
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startMayaService()
+        } else {
+            permissionLauncher.launch(
+                Manifest.permission.RECORD_AUDIO
+            )
+        }
     }
 
     private fun startMayaService() {
-    val serviceIntent = Intent(
-        this,
-        MayaListeningService::class.java
-    )
-
-    if (ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
-    ) {
-        ContextCompat.startForegroundService(
-            this,
-            serviceIntent
-        )
-        messageState.value = "MAYA Voice Service चालू है।"
-    } else {
-        checkMicrophonePermission()
-    }
-}
-    private fun checkMicrophonePermission() {
-        if (ContextCompat.checkSelfPermission(
-                this, Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-    startMayaService()
-} else {
-            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-        }
-    }
-
-    private fun startListening() {
-        if (recognizer == null) {
-            messageState.value = "Speech Recognition उपलब्ध नहीं है।"
-            return
-        }
-
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "hi-IN")
-        }
-
         try {
-            messageState.value = "माइक्रोफोन शुरू हो रहा है..."
-            recognizer?.cancel()
-            recognizer?.startListening(intent)
+            val serviceIntent = Intent(
+                this,
+                MayaListeningService::class.java
+            )
+
+            ContextCompat.startForegroundService(
+                this,
+                serviceIntent
+            )
+
+            messageState.value = "MAYA Voice Service चालू है।"
+
         } catch (e: Exception) {
-            messageState.value = "माइक्रोफोन शुरू नहीं हो पाया।"
+            messageState.value =
+                "MAYA शुरू नहीं हो पाई: ${e.message}"
         }
-    }
-
-    private fun askMaya(question: String) {
-        messageState.value = "MAYA सोच रही है..."
-
-        scope.launch {
-            try {
-                val reply = withContext(Dispatchers.IO) {
-                    val connection =
-                        URL(workerUrl).openConnection() as HttpURLConnection
-
-                    try {
-                        connection.requestMethod = "POST"
-                        connection.connectTimeout = 30000
-                        connection.readTimeout = 60000
-                        connection.doOutput = true
-                        connection.setRequestProperty(
-                            "Content-Type", "application/json"
-                        )
-
-                        val body = JSONObject()
-                            .put("message", question)
-                            .toString()
-
-                        connection.outputStream.use {
-                            it.write(body.toByteArray(Charsets.UTF_8))
-                        }
-
-                        val code = connection.responseCode
-                        val stream = if (code in 200..299) {
-                            connection.inputStream
-                        } else {
-                            connection.errorStream
-                        }
-
-                        val result = stream.bufferedReader().use {
-                            it.readText()
-                        }
-
-                        if (code !in 200..299) {
-                            throw Exception(
-                                JSONObject(result).optString(
-                                    "details", "AI सेवा में समस्या है।"
-                                )
-                            )
-                        }
-
-                        JSONObject(result).optString(
-                            "reply", "अभी जवाब नहीं मिला।"
-                        )
-                    } finally {
-                        connection.disconnect()
-                    }
-                }
-val cleanReply = reply
-    .replace(Regex("[*_#`~]"), "")
-    .replace(Regex("(?m)^\\s*[-•]\\s*"), "")
-    .replace(Regex("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+"), "")
-    .replace(Regex("\\s+"), " ")
-    .trim()
-
-messageState.value = cleanReply
-                if (ttsReady) {
-    val lowerReply = reply.lowercase()
-
-    val happy = listOf("बहुत अच्छा", "शानदार", "खुशी", "वाह")
-        .any { lowerReply.contains(it) }
-
-    val caring = listOf("चिंता", "परेशान", "दुख", "माफ़")
-        .any { lowerReply.contains(it) }
-
-    speaker?.setPitch(
-        when {
-            happy -> 1.15f
-            caring -> 0.95f
-            else -> 1.05f
-        }
-    )
-
-    speaker?.setSpeechRate(
-        when {
-            happy -> 0.98f
-            caring -> 0.88f
-            else -> 0.93f
-        }
-    )
-
-    speaker?.speak(
-        cleanReply,
-        TextToSpeech.QUEUE_FLUSH,
-        null,
-        "maya_reply"
-    )
-                }
-            } catch (e: Exception) {
-                messageState.value =
-                    "कनेक्शन में समस्या: ${e.message ?: "दोबारा कोशिश करें"}"
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        
-        scope.cancel()
-        recognizer?.destroy()
-        speaker?.stop()
-        speaker?.shutdown()
-        super.onDestroy()
     }
 }
 
 @Composable
 fun MayaScreen(message: String, onTalk: () -> Unit) {
+
     val purple = Color(0xFF7C4DFF)
     val blue = Color(0xFF2979FF)
 
@@ -332,12 +160,15 @@ fun MayaScreen(message: String, onTalk: () -> Unit) {
             .padding(22.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(35.dp))
 
             Text("MAYA AI", color = Color.White, fontSize = 32.sp)
+
             Text(
                 "YOUR PERSONAL AI ASSISTANT",
                 color = Color.LightGray,
@@ -360,7 +191,12 @@ fun MayaScreen(message: String, onTalk: () -> Unit) {
 
             Spacer(Modifier.height(28.dp))
 
-            Text("Hello, I'm Maya", color = Color.White, fontSize = 25.sp)
+            Text(
+                "Hello, I'm Maya",
+                color = Color.White,
+                fontSize = 25.sp
+            )
+
             Text(
                 "मैं आपकी सहायता के लिए तैयार हूँ",
                 color = Color.LightGray,
@@ -377,15 +213,15 @@ fun MayaScreen(message: String, onTalk: () -> Unit) {
                 shape = RoundedCornerShape(18.dp)
             ) {
                 Text(
-    message,
-    modifier = Modifier
-        .fillMaxWidth()
-        .heightIn(max = 500.dp)
-        .verticalScroll(rememberScrollState())
-        .padding(20.dp),
-    color = Color.White,
-    fontSize = 16.sp
-)
+                    text = message,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 500.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp),
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
             }
 
             Spacer(Modifier.height(25.dp))
@@ -412,4 +248,3 @@ fun MayaScreen(message: String, onTalk: () -> Unit) {
         }
     }
 }
-
