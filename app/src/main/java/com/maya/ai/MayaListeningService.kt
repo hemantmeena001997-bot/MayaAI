@@ -626,7 +626,7 @@ class MayaListeningService : Service() {
         wakeListening = false
         conversationMode = false
         try {
-            speechRecognizer?.destroy()
+            recognizer?.destroy()
         } catch (_: Exception) {
         }
 
