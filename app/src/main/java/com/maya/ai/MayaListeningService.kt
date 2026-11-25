@@ -36,9 +36,11 @@ import com.k2fsa.sherpa.onnx.getKeywordsFile
 class MayaListeningService : Service() {
 
     companion object {
-    const val CHANNEL_ID = "maya_listening_channel"
-    const val NOTIFICATION_ID = 1001
-    const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
+        const val CHANNEL_ID = "maya_listening_channel"
+        const val NOTIFICATION_ID = 1001
+        const val ACTION_WAKE_WORD = "com.maya.ai.ACTION_WAKE_WORD"
+        const val ACTION_UI_UPDATE = "com.maya.ai.ACTION_UI_UPDATE"
+        const val EXTRA_MESSAGE = "extra_message"
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -47,25 +49,48 @@ class MayaListeningService : Service() {
     @Volatile
     private var wakeListening = false
 
-    private var audioRecord: AudioRecord? = null
-    private var audioThread: Thread? = null
+    @Volatile
+    private var serviceStopping = false
 
-    private var recognizer: SpeechRecognizer? = null
-    private var speaker: TextToSpeech? = null
-
-    private var ttsReady = false
     @Volatile
     private var conversationMode = false
-private val conversationTimeout = 30_000L
-private val conversationHandler = Handler(Looper.getMainLooper())
-private var conversationRunnable: Runnable? = null
+
+    private var audioRecord: AudioRecord? = null
+    private var audioThread: Thread? = null
+    private var recognizer: SpeechRecognizer? = null
+    private var speaker: TextToSpeech? = null
+    private var ttsReady = false
     private var pendingSpeech: String? = null
+
+    private val conversationTimeout = 30_000L
+    private val conversationHandler = Handler(Looper.getMainLooper())
+    private var conversationRunnable: Runnable? = null
 
     private val workerUrl =
         "https://maya-ai-brain.hemantmeena001997.workers.dev/"
 
+    // ऐप की स्क्रीन पर संदेश भेजना
+    private fun publishToApp(message: String) {
+        val intent = Intent(ACTION_UI_UPDATE).apply {
+            setPackage(packageName)
+            putExtra(EXTRA_MESSAGE, message)
+        }
+        sendBroadcast(intent)
+    }
+
+    // जवाब को सुरक्षित करके स्क्रीन पर भेजना
+    private fun publishReplyToApp(message: String) {
+        getSharedPreferences("maya_data", MODE_PRIVATE)
+            .edit()
+            .putString("last_reply", message)
+            .apply()
+
+        publishToApp(message)
+    }
+
     override fun onCreate() {
         super.onCreate()
+        serviceStopping = false
         createNotificationChannel()
         initializeSpeaker()
     }
@@ -88,7 +113,7 @@ private var conversationRunnable: Runnable? = null
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        if (!wakeListening) {
+        if (!wakeListening && audioThread?.isAlive != true) {
             startWakeWordListening()
         }
 
@@ -111,26 +136,28 @@ private var conversationRunnable: Runnable? = null
                         override fun onStart(utteranceId: String?) {}
 
                         override fun onDone(utteranceId: String?) {
-    mainHandler.post {
-        if (conversationMode) {
-            startCommandListening()
-        } else {
-            startWakeWordListening()
-        }
-    }
+                            mainHandler.post {
+                                if (!serviceStopping) {
+                                    if (conversationMode) {
+                                        startCommandListening()
+                                    } else {
+                                        startWakeWordListening()
+                                    }
+                                }
+                            }
                         }
 
-                        
-override fun onError(utteranceId: String?) {
-    mainHandler.post {
-        if (conversationMode) {
-            startCommandListening()
-        } else {
-            startWakeWordListening()
-        }
-    }
-}
-
+                        override fun onError(utteranceId: String?) {
+                            mainHandler.post {
+                                if (!serviceStopping) {
+                                    if (conversationMode) {
+                                        startCommandListening()
+                                    } else {
+                                        startWakeWordListening()
+                                    }
+                                }
+                            }
+                        }
                     }
                 )
 
@@ -143,42 +170,37 @@ override fun onError(utteranceId: String?) {
         }
     }
 
-        
-private fun cancelConversationTimeout() {
-    conversationRunnable?.let {
-        conversationHandler.removeCallbacks(it)
-    }
-    conversationRunnable = null
-}
-
-private fun resetConversationTimeout() {
-    cancelConversationTimeout()
-
-    val timeoutTask = Runnable {
-        conversationRunnable = null
-
-        if (conversationMode) {
-            conversationMode = false
-
-            recognizer?.cancel()
-            recognizer?.destroy()
-            recognizer = null
-
-            updateNotification("MAYA फिर से Wake Word सुन रही है...")
-            startWakeWordListening()
+    private fun cancelConversationTimeout() {
+        conversationRunnable?.let {
+            conversationHandler.removeCallbacks(it)
         }
+        conversationRunnable = null
     }
 
-    conversationRunnable = timeoutTask
-    conversationHandler.postDelayed(
-        timeoutTask,
-        conversationTimeout
-    )
-}
+    private fun resetConversationTimeout() {
+        cancelConversationTimeout()
 
-private fun startWakeWordListening() {
+        val task = Runnable {
+            conversationRunnable = null
 
-        if (wakeListening) return
+            if (conversationMode && !serviceStopping) {
+                conversationMode = false
+                recognizer?.cancel()
+                recognizer?.destroy()
+                recognizer = null
+
+                updateNotification("MAYA फिर से Wake Word सुन रही है...")
+                startWakeWordListening()
+            }
+        }
+
+        conversationRunnable = task
+        conversationHandler.postDelayed(task, conversationTimeout)
+    }
+
+    private fun startWakeWordListening() {
+
+        if (serviceStopping || wakeListening) return
 
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
@@ -211,13 +233,12 @@ private fun startWakeWordListening() {
                 )
 
                 val spotter = KeywordSpotter(
-    assetManager = assets,
-    config = config
-)
+                    assetManager = assets,
+                    config = config
+                )
 
-localSpotter = spotter
-
-val stream = spotter.createStream()
+                localSpotter = spotter
+                val stream = spotter.createStream()
 
                 try {
                     val minBuffer = AudioRecord.getMinBufferSize(
@@ -245,10 +266,9 @@ val stream = spotter.createStream()
                     }
 
                     recorder.startRecording()
-
                     val shortBuffer = ShortArray(1024)
 
-                    while (wakeListening) {
+                    while (wakeListening && !serviceStopping) {
 
                         val count = recorder.read(
                             shortBuffer,
@@ -261,47 +281,44 @@ val stream = spotter.createStream()
                         }
 
                         if (count > 0) {
-
                             val samples = FloatArray(count) { i ->
                                 shortBuffer[i] / 32768.0f
                             }
-                            android.util.Log.d("MAYA_AUDIO", "Audio samples received: $count")
+
+                            android.util.Log.d(
+                                "MAYA_AUDIO",
+                                "Audio samples received: $count"
+                            )
 
                             stream.acceptWaveform(samples, 16000)
 
                             while (spotter.isReady(stream)) {
-
                                 spotter.decode(stream)
 
                                 val result = spotter.getResult(stream)
-                                if (result.keyword.isNotEmpty()) {
 
+                                if (result.keyword.isNotEmpty()) {
                                     detected = true
                                     wakeListening = false
                                     conversationMode = true
 
-                                    updateNotification(
-                                        "HELLO MAYA पहचाना गया!"
-                                    )
-
+                                    updateNotification("HELLO MAYA पहचाना गया!")
                                     break
                                 }
                             }
                         }
                     }
-
                 } finally {
                     stream.release()
                 }
 
             } catch (e: Exception) {
-
-                updateNotification(
-                    "Voice समस्या: ${e.message ?: "अज्ञात त्रुटि"}"
-                )
-
+                if (!serviceStopping) {
+                    updateNotification(
+                        "Voice समस्या: ${e.message ?: "अज्ञात त्रुटि"}"
+                    )
+                }
             } finally {
-
                 wakeListening = false
 
                 recorder?.let {
@@ -323,137 +340,140 @@ val stream = spotter.createStream()
                 localSpotter?.release()
             }
 
-            if (detected) {
+            if (detected && !serviceStopping) {
                 mainHandler.post {
                     startCommandListening()
                 }
             }
+        }.apply {
+            name = "MAYA-WakeWord"
         }
 
         audioThread?.start()
     }
 
-    
+    private fun startCommandListening() {
 
-private fun startCommandListening() {
+        if (serviceStopping) return
 
-    if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-        updateNotification("Speech Recognition उपलब्ध नहीं है")
-        cancelConversationTimeout()
-        conversationMode = false
-        startWakeWordListening()
-        return
-    }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            updateNotification("Speech Recognition उपलब्ध नहीं है")
+            cancelConversationTimeout()
+            conversationMode = false
+            startWakeWordListening()
+            return
+        }
 
-    updateNotification("जी, बोलिए। मैं सुन रही हूँ...")
+        updateNotification("जी, बोलिए। मैं सुन रही हूँ...")
 
-    try {
-        recognizer?.destroy()
-        recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        try {
+            recognizer?.destroy()
+            recognizer = SpeechRecognizer.createSpeechRecognizer(this)
 
-        recognizer?.setRecognitionListener(
-            object : RecognitionListener {
+            recognizer?.setRecognitionListener(
+                object : RecognitionListener {
 
-                override fun onReadyForSpeech(params: android.os.Bundle?) {
-                    updateNotification("जी, बोलिए...")
-                }
+                    override fun onReadyForSpeech(params: android.os.Bundle?) {
+                        updateNotification("जी, बोलिए...")
+                    }
 
-                override fun onBeginningOfSpeech() {
-                    cancelConversationTimeout()
-                }
+                    override fun onBeginningOfSpeech() {
+                        cancelConversationTimeout()
+                    }
 
-                override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onBufferReceived(buffer: ByteArray?) {}
 
-                override fun onBufferReceived(buffer: ByteArray?) {}
-
-                override fun onEndOfSpeech() {
-    updateNotification("आपकी बात समझ रही हूँ...")
-    if (conversationMode) {
-        resetConversationTimeout()
-    }
-                }
-
-                override fun onError(error: Int) {
-                    recognizer?.destroy()
-                    recognizer = null
-
-                    updateNotification("फिर से सुनने के लिए तैयार हूँ")
-
-                    mainHandler.postDelayed({
+                    override fun onEndOfSpeech() {
+                        updateNotification("आपकी बात समझ रही हूँ...")
                         if (conversationMode) {
-                            startCommandListening()
-                        } else {
-                            startWakeWordListening()
+                            resetConversationTimeout()
                         }
-                    }, 1000)
+                    }
+
+                    override fun onError(error: Int) {
+                        recognizer?.destroy()
+                        recognizer = null
+
+                        if (serviceStopping) return
+
+                        updateNotification("फिर से सुनने के लिए तैयार हूँ")
+
+                        mainHandler.postDelayed({
+                            if (!serviceStopping) {
+                                if (conversationMode) {
+                                    startCommandListening()
+                                } else {
+                                    startWakeWordListening()
+                                }
+                            }
+                        }, 1000)
+                    }
+
+                    override fun onResults(results: android.os.Bundle?) {
+                        val words = results
+                            ?.getStringArrayList(
+                                SpeechRecognizer.RESULTS_RECOGNITION
+                            )
+                            ?.firstOrNull()
+
+                        recognizer?.destroy()
+                        recognizer = null
+                        cancelConversationTimeout()
+
+                        if (!words.isNullOrBlank()) {
+                            askMaya(words)
+                        } else {
+                            speakReply("माफ कीजिए, फिर से बोलिए।")
+                        }
+                    }
+
+                    override fun onPartialResults(
+                        partialResults: android.os.Bundle?
+                    ) {}
+
+                    override fun onEvent(
+                        eventType: Int,
+                        params: android.os.Bundle?
+                    ) {}
                 }
+            )
 
-                override fun onResults(results: android.os.Bundle?) {
+            val speechIntent = Intent(
+                RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+            ).apply {
+                putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "hi-IN")
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            }
 
-                    val words = results
-                        ?.getStringArrayList(
-                            SpeechRecognizer.RESULTS_RECOGNITION
-                        )
-                        ?.firstOrNull()
+            recognizer?.startListening(speechIntent)
 
-                    recognizer?.destroy()
-                    recognizer = null
+            if (conversationMode && conversationRunnable == null) {
+                resetConversationTimeout()
+            }
 
-                    cancelConversationTimeout()
+        } catch (e: Exception) {
+            recognizer?.destroy()
+            recognizer = null
 
-                    if (!words.isNullOrBlank()) {
-                        askMaya(words)
+            updateNotification("सुनने में समस्या हुई")
+
+            mainHandler.postDelayed({
+                if (!serviceStopping) {
+                    if (conversationMode) {
+                        startCommandListening()
                     } else {
-                        speakReply("माफ कीजिए, फिर से बोलिए।")
+                        startWakeWordListening()
                     }
                 }
-
-                override fun onPartialResults(
-                    partialResults: android.os.Bundle?
-                ) {}
-
-                override fun onEvent(
-                    eventType: Int,
-                    params: android.os.Bundle?
-                ) {}
-            }
-        )
-
-        val intent = Intent(
-            RecognizerIntent.ACTION_RECOGNIZE_SPEECH
-        ).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "hi-IN")
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            }, 1000)
         }
-
-        recognizer?.startListening(intent)
-
-        if (conversationMode && conversationRunnable == null) {
-            resetConversationTimeout()
-        }
-
-    } catch (e: Exception) {
-
-        recognizer?.destroy()
-        recognizer = null
-
-        updateNotification("सुनने में समस्या हुई")
-
-        mainHandler.postDelayed({
-            if (conversationMode) {
-                startCommandListening()
-            } else {
-                startWakeWordListening()
-            }
-        }, 1000)
     }
-}
-
 
     private fun askMaya(question: String) {
 
@@ -527,15 +547,17 @@ private fun startCommandListening() {
                     .trim()
 
                 mainHandler.post {
+                    publishReplyToApp(cleanReply)
                     speakReply(cleanReply)
                 }
 
             } catch (e: Exception) {
-
                 mainHandler.post {
-                    speakReply(
+                    val errorMessage =
                         "कनेक्शन में समस्या है। ${e.message ?: "दोबारा कोशिश करें"}"
-                    )
+
+                    publishReplyToApp(errorMessage)
+                    speakReply(errorMessage)
                 }
             }
         }
@@ -563,7 +585,6 @@ private fun startCommandListening() {
     }
 
     private fun makeNotification(message: String): Notification {
-
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("MAYA AI")
             .setContentText(message)
@@ -573,7 +594,6 @@ private fun startCommandListening() {
     }
 
     private fun updateNotification(message: String) {
-
         val manager = getSystemService(
             NotificationManager::class.java
         )
@@ -582,12 +602,12 @@ private fun startCommandListening() {
             NOTIFICATION_ID,
             makeNotification(message)
         )
+
+        publishToApp(message)
     }
 
     private fun createNotificationChannel() {
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "MAYA Voice Service",
@@ -601,31 +621,23 @@ private fun startCommandListening() {
         }
     }
 
-    
-override fun onDestroy() {
+    override fun onDestroy() {
+        serviceStopping = true
+        wakeListening = false
+        conversationMode = false
+        try {
+            speechRecognizer?.destroy()
+        } catch (_: Exception) {
+        }
 
-    wakeListening = false
-    conversationMode = false
+        try {
+            speaker?.stop()
+            speaker?.shutdown()
+        } catch (_: Exception) {
+        }
 
-    cancelConversationTimeout()
-    conversationHandler.removeCallbacksAndMessages(null)
-
-    try {
-        audioRecord?.stop()
-    } catch (_: Exception) {}
-
-    recognizer?.cancel()
-    recognizer?.destroy()
-    recognizer = null
-
-    speaker?.stop()
-    speaker?.shutdown()
-    speaker = null
-
-    networkExecutor.shutdownNow()
-
-    super.onDestroy()
-}
+        super.onDestroy()
+    }
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
