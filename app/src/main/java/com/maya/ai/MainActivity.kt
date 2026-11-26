@@ -28,6 +28,13 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
+        companion object {
+        init {
+            System.loadLibrary("maya_native")
+        }
+    }
+
+    external fun getNativeMessage(): String
 
     private val messageState = mutableStateOf(
         "नमस्ते! मैं MAYA हूँ। कुछ भी पूछिए।"
