@@ -1,3 +1,4 @@
+
 #include <jni.h>
 #include <string>
 #include <vector>
@@ -43,12 +44,12 @@ Java_com_maya_ai_MainActivity_generateOffline(
         env->GetStringUTFChars(userPrompt, nullptr);
 
     if (pathChars == nullptr || promptChars == nullptr) {
-        if (pathChars)
+        if (pathChars != nullptr) {
             env->ReleaseStringUTFChars(modelPath, pathChars);
-
-        if (promptChars)
+        }
+        if (promptChars != nullptr) {
             env->ReleaseStringUTFChars(userPrompt, promptChars);
-
+        }
         return env->NewStringUTF("MAYA: Input error");
     }
 
@@ -95,13 +96,10 @@ Java_com_maya_ai_MainActivity_generateOffline(
         if (mayaModel == nullptr) {
             mayaModelPath.clear();
             MAYA_LOG("Model loading failed");
-            return env->NewStringUTF(
-                "MAYA: Model load failed"
-            );
+            return env->NewStringUTF("MAYA: Model load failed");
         }
 
         mayaModelPath = path;
-
         MAYA_LOG("Model loaded successfully");
     }
 
@@ -112,7 +110,7 @@ Java_com_maya_ai_MainActivity_generateOffline(
     contextParams.n_batch = 128;
     contextParams.n_ubatch = 128;
     contextParams.n_threads = 6;
-contextParams.n_threads_batch = 6;
+    contextParams.n_threads_batch = 6;
 
     MAYA_LOG("Creating context");
 
@@ -122,9 +120,7 @@ contextParams.n_threads_batch = 6;
     );
 
     if (ctx == nullptr) {
-        return env->NewStringUTF(
-            "MAYA: Context creation failed"
-        );
+        return env->NewStringUTF("MAYA: Context creation failed");
     }
 
     const llama_vocab* vocab =
@@ -132,9 +128,10 @@ contextParams.n_threads_batch = 6;
 
     std::string prompt =
         "<|im_start|>system\n"
-        "Tum MAYA ho, ek friendly aur samajhdar Hindi AI assistant. "
-        "Hamesha Hindi ya Hinglish mein jawab do. "
-        "Seedhe aur sahi jawab do.\n"
+        "Tum MAYA ho, ek accurate aur helpful Hindi AI assistant. "
+        "Hamesha user ke sawal ka seedha aur sachcha jawab do. "
+        "Agar jawab pata na ho to saaf batao, galat jawab mat banao. "
+        "Hindi ya Hinglish mein chhote aur spasht jawab do.\n"
         "<|im_end|>\n"
         "<|im_start|>user\n" +
         question +
@@ -169,9 +166,7 @@ contextParams.n_threads_batch = 6;
 
     if (tokenCount <= 0 || tokenCount > 1024) {
         llama_free(ctx);
-        return env->NewStringUTF(
-            "MAYA: Prompt error"
-        );
+        return env->NewStringUTF("MAYA: Prompt error");
     }
 
     tokens.resize(tokenCount);
@@ -185,46 +180,15 @@ contextParams.n_threads_batch = 6;
 
     if (llama_decode(ctx, batch) != 0) {
         llama_free(ctx);
-        return env->NewStringUTF(
-            "MAYA: Prompt decode failed"
-        );
+        return env->NewStringUTF("MAYA: Prompt decode failed");
     }
 
-    llama_sampler* sampler = llama_sampler_chain_init(
-    llama_sampler_chain_default_params()
-);
+    llama_sampler* sampler =
+        llama_sampler_init_greedy();
 
-llama_sampler_chain_add(
-    sampler,
-    llama_sampler_init_penalties(
-    llama_vocab_n_tokens(vocab), 64, 1.10f, 0.0f, 0.0f
-)
-);
-
-llama_sampler_chain_add(
-    sampler,
-    llama_sampler_init_top_k(40)
-);
-
-llama_sampler_chain_add(
-    sampler,
-    llama_sampler_init_top_p(0.90f, 1)
-);
-
-llama_sampler_chain_add(
-    sampler,
-    llama_sampler_init_temp(0.70f)
-);
-
-llama_sampler_chain_add(
-    sampler,
-    llama_sampler_init_dist(1234)
-);
     if (sampler == nullptr) {
         llama_free(ctx);
-        return env->NewStringUTF(
-            "MAYA: Sampler error"
-        );
+        return env->NewStringUTF("MAYA: Sampler error");
     }
 
     std::string answer;
@@ -232,7 +196,7 @@ llama_sampler_chain_add(
 
     MAYA_LOG("Generating offline answer");
 
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < 64; i++) {
 
         llama_token newToken = llama_sampler_sample(
             sampler,
