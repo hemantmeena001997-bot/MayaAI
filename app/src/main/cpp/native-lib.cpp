@@ -190,9 +190,34 @@ Java_com_maya_ai_MainActivity_generateOffline(
         );
     }
 
-    llama_sampler* sampler =
-        llama_sampler_init_greedy();
+    llama_sampler* sampler = llama_sampler_chain_init(
+    llama_sampler_chain_default_params()
+);
 
+llama_sampler_chain_add(
+    sampler,
+    llama_sampler_init_penalties(64, 1.10f, 0.0f, 0.0f)
+);
+
+llama_sampler_chain_add(
+    sampler,
+    llama_sampler_init_top_k(40)
+);
+
+llama_sampler_chain_add(
+    sampler,
+    llama_sampler_init_top_p(0.90f, 1)
+);
+
+llama_sampler_chain_add(
+    sampler,
+    llama_sampler_init_temp(0.70f)
+);
+
+llama_sampler_chain_add(
+    sampler,
+    llama_sampler_init_dist(1234)
+);
     if (sampler == nullptr) {
         llama_free(ctx);
         return env->NewStringUTF(
