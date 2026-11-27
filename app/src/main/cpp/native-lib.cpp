@@ -111,8 +111,8 @@ Java_com_maya_ai_MainActivity_generateOffline(
     contextParams.n_ctx = 1024;
     contextParams.n_batch = 128;
     contextParams.n_ubatch = 128;
-    contextParams.n_threads = 4;
-    contextParams.n_threads_batch = 4;
+    contextParams.n_threads = 6;
+contextParams.n_threads_batch = 6;
 
     MAYA_LOG("Creating context");
 
