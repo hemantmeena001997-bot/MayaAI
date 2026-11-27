@@ -57,16 +57,24 @@ private val modelPicker =
                 )
 
                 val input = contentResolver.openInputStream(uri)
-                val outputFile = java.io.File(filesDir, "maya-model.gguf")
+    ?: throw Exception("Model file open nahi hui")
 
-                input?.use { source ->
-                    outputFile.outputStream().use { destination ->
-                        source.copyTo(destination)
-                    }
-                }
+val outputFile = java.io.File(filesDir, "maya-model.gguf")
 
-                offlineModelPath = outputFile.absolutePath
-                messageState.value = "MAYA Offline Model तैयार है।"
+input.use { source ->
+    outputFile.outputStream().use { destination ->
+        source.copyTo(destination)
+    }
+}
+
+if (!outputFile.exists() || outputFile.length() < 100_000_000L) {
+    throw Exception("Model file incomplete hai")
+}
+
+offlineModelPath = outputFile.absolutePath
+
+messageState.value =
+    "MAYA Offline Model तैयार है: ${outputFile.length() / (1024 * 1024)} MB"
             } catch (e: Exception) {
                 messageState.value = "Model error: ${e.message}"
             }
