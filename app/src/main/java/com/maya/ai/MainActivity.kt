@@ -2,6 +2,8 @@
 package com.maya.ai
 
 import android.Manifest
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -35,12 +37,42 @@ class MainActivity : ComponentActivity() {
     }
 
     external fun getNativeMessage(): String
+        external fun generateOffline(modelPath: String, userPrompt: String): String
 
     private val messageState = mutableStateOf(
         "नमस्ते! मैं MAYA हूँ। कुछ भी पूछिए।"
     )
 
     private var receiverRegistered = false
+        private var offlineModelPath: String = ""
+
+private val modelPicker =
+    registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+
+                val input = contentResolver.openInputStream(uri)
+                val outputFile = java.io.File(filesDir, "maya-model.gguf")
+
+                input?.use { source ->
+                    outputFile.outputStream().use { destination ->
+                        source.copyTo(destination)
+                    }
+                }
+
+                offlineModelPath = outputFile.absolutePath
+                messageState.value = "MAYA Offline Model तैयार है।"
+            } catch (e: Exception) {
+                messageState.value = "Model error: ${e.message}"
+            }
+        }
+    }
 
     private val mayaReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -80,10 +112,17 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MayaScreen(
-                message = messageState.value,
-                onTalk = { checkMicrophonePermission() }
-            )
-        }
+    message = messageState.value,
+    onTalk = { checkMicrophonePermission() },
+    onSelectModel = {
+        modelPicker.launch(arrayOf("*/*"))
+    }
+    onAskOffline = { question ->
+    askOfflineMaya(question)
+    }
+)
+            },
+    onAskOffline = { question ->
 
         checkMicrophonePermission()
     }
@@ -144,13 +183,39 @@ class MainActivity : ComponentActivity() {
                 "MAYA शुरू नहीं हो पाई: ${e.message}"
         }
     }
+    private fun askOfflineMaya(question: String) {
+    if (offlineModelPath.isBlank()) {
+        messageState.value = "पहले Offline Model चुनिए।"
+        return
+    }
+
+    messageState.value = "MAYA Offline में जवाब तैयार कर रही है..."
+
+    Thread {
+        val reply = try {
+            generateOffline(offlineModelPath, question)
+        } catch (e: Exception) {
+            "Offline AI Error: ${e.message}"
+        }
+
+        runOnUiThread {
+            messageState.value = reply
+        }
+    }.start()
+    }
 }
 
 @Composable
-fun MayaScreen(message: String, onTalk: () -> Unit) {
+fun MayaScreen(
+    message: String,
+    onTalk: () -> Unit,
+    onSelectModel: () -> Unit,
+    onAskOffline: (String) -> Unit
+) {
 
     val purple = Color(0xFF7C4DFF)
     val blue = Color(0xFF2979FF)
+    var offlineQuestion by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -244,6 +309,39 @@ fun MayaScreen(message: String, onTalk: () -> Unit) {
             ) {
                 Text("🎙 TALK TO MAYA", fontSize = 17.sp)
             }
+            Spacer(Modifier.height(12.dp))
+
+Button(
+    onClick = onSelectModel,
+    colors = ButtonDefaults.buttonColors(
+        containerColor = blue
+    ),
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(55.dp)
+) {
+    Text("📂 SELECT OFFLINE MODEL", fontSize = 16.sp)
+}
+Spacer(Modifier.height(12.dp))
+
+OutlinedTextField(
+    value = offlineQuestion,
+    onValueChange = { offlineQuestion = it },
+    label = { Text("MAYA से सवाल पूछें") },
+    modifier = Modifier.fillMaxWidth(),
+    singleLine = false
+)
+
+Button(
+    onClick = {
+        if (offlineQuestion.isNotBlank()) {
+            onAskOffline(offlineQuestion)
+        }
+    },
+    modifier = Modifier.fillMaxWidth()
+) {
+    Text("ASK MAYA OFFLINE")
+}
 
             Spacer(Modifier.height(15.dp))
 
