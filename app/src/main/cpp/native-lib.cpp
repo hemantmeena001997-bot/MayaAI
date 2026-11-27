@@ -196,7 +196,9 @@ Java_com_maya_ai_MainActivity_generateOffline(
 
 llama_sampler_chain_add(
     sampler,
-    llama_sampler_init_penalties(64, 1.10f, 0.0f, 0.0f)
+    llama_sampler_init_penalties(
+    32000, 64, 1.10f, 0.0f, 0.0f
+)
 );
 
 llama_sampler_chain_add(
