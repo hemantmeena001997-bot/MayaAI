@@ -197,7 +197,7 @@ contextParams.n_threads_batch = 6;
 llama_sampler_chain_add(
     sampler,
     llama_sampler_init_penalties(
-    32000, 64, 1.10f, 0.0f, 0.0f
+    llama_vocab_n_tokens(vocab), 64, 1.10f, 0.0f, 0.0f
 )
 );
 
