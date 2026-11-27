@@ -3,7 +3,6 @@ package com.maya.ai
 
 import android.Manifest
 import android.net.Uri
-import androidx.activity.result.contract.ActivityResultContracts
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -99,32 +98,31 @@ private val modelPicker =
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    super.onCreate(savedInstanceState)
 
-        val savedReply = getSharedPreferences(
-            "maya_data",
-            MODE_PRIVATE
-        ).getString("last_reply", null)
+    val savedReply = getSharedPreferences(
+        "maya_data",
+        MODE_PRIVATE
+    ).getString("last_reply", null)
 
-        if (!savedReply.isNullOrBlank()) {
-            messageState.value = savedReply
-        }
-
-        setContent {
-            MayaScreen(
-    message = messageState.value,
-    onTalk = { checkMicrophonePermission() },
-    onSelectModel = {
-        modelPicker.launch(arrayOf("*/*"))
+    if (!savedReply.isNullOrBlank()) {
+        messageState.value = savedReply
     }
-    onAskOffline = { question ->
-    askOfflineMaya(question)
-    }
-)
+
+    setContent {
+        MayaScreen(
+            message = messageState.value,
+            onTalk = { checkMicrophonePermission() },
+            onSelectModel = {
+                modelPicker.launch(arrayOf("*/*"))
             },
-    onAskOffline = { question ->
+            onAskOffline = { question ->
+                askOfflineMaya(question)
+            }
+        )
+    }
 
-        checkMicrophonePermission()
+    checkMicrophonePermission()
     }
 
     override fun onStart() {
