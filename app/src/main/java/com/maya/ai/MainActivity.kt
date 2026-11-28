@@ -95,17 +95,7 @@ messageState.value =
         }
     }
 
-    private val permissionLauncher =
-        private val cameraPermissionLauncher =
-    registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            messageState.value = "Camera Permission मिल गई।"
-        } else {
-            messageState.value = "Flashlight के लिए Camera Permission जरूरी है।"
-        }
-    }
+        private val permissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { granted ->
@@ -113,6 +103,18 @@ messageState.value =
                 startMayaService()
             } else {
                 messageState.value = "माइक्रोफोन की अनुमति जरूरी है।"
+            }
+        }
+
+    private val cameraPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                messageState.value = "Camera Permission मिल गई।"
+            } else {
+                messageState.value =
+                    "Flashlight के लिए Camera Permission जरूरी है।"
             }
         }
 
