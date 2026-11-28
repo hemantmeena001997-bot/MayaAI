@@ -10,6 +10,8 @@
     <queries>
     <package android:name="com.google.android.youtube" />
     <package android:name="com.android.settings" />
+        <package android:name="com.android.chrome" />
+<package android:name="com.whatsapp" />
 
     <intent>
         <action android:name="android.speech.RecognitionService" />
