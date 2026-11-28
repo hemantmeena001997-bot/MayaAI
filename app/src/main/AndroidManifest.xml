@@ -8,10 +8,13 @@
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <queries>
-        <intent>
-            <action android:name="android.speech.RecognitionService" />
-        </intent>
-    </queries>
+    <package android:name="com.google.android.youtube" />
+    <package android:name="com.android.settings" />
+
+    <intent>
+        <action android:name="android.speech.RecognitionService" />
+    </intent>
+</queries>
 
     <application
         android:allowBackup="false"
