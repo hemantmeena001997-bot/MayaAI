@@ -536,21 +536,6 @@ private fun openMayaApp(appName: String): Boolean {
         else -> return false
     }
 
-    return try {
-        val launchIntent =
-            packageManager.getLaunchIntentForPackage(packageName)
-
-        if (launchIntent != null) {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(launchIntent)
-            true
-        } else {
-            false
-        }
-    } catch (e: Exception) {
-        false
-    }
-}
 
 private fun openDefaultCamera(): Boolean {
     return try {
