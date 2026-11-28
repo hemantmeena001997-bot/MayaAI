@@ -531,8 +531,20 @@ command.contains("कैमरा") -> {
     "settings" -> "com.android.settings"
     "chrome" -> "com.android.chrome"
     "whatsapp" -> "com.whatsapp"
-        "camera" -> "com.android.camera"
+        "camera" -> return openDefaultCamera()
     else -> return false
+    }
+    private fun openDefaultCamera(): Boolean {
+    return try {
+        val intent = Intent(
+            android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA
+        )
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+        true
+    } catch (e: Exception) {
+        false
+    }
     }
 
     return try {
