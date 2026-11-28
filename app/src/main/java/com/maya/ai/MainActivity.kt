@@ -96,6 +96,16 @@ messageState.value =
     }
 
     private val permissionLauncher =
+        private val cameraPermissionLauncher =
+    registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            messageState.value = "Camera Permission मिल गई।"
+        } else {
+            messageState.value = "Flashlight के लिए Camera Permission जरूरी है।"
+        }
+    }
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { granted ->
