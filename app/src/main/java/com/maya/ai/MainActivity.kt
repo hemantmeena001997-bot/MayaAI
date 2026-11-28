@@ -129,6 +129,7 @@ messageState.value =
     }
         override fun onCreate(savedInstanceState: Bundle?) {
                 super.onCreate(savedInstanceState)
+                checkCameraPermission()
                 Shizuku.addRequestPermissionResultListener(
     shizukuPermissionListener
 )
