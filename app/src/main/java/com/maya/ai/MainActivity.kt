@@ -154,6 +154,10 @@ if (Shizuku.pingBinder()) {
             onAskOffline = { question ->
                 askOfflineMaya(question)
             }
+            onDeviceInfo = {
+    messageState.value =
+        MayaAndroidControl.getDeviceInfo()
+            }
         )
     }
 
@@ -249,7 +253,8 @@ fun MayaScreen(
     message: String,
     onTalk: () -> Unit,
     onSelectModel: () -> Unit,
-    onAskOffline: (String) -> Unit
+    onAskOffline: (String) -> Unit,
+    onDeviceInfo: () -> Unit
 ) {
 
     val purple = Color(0xFF7C4DFF)
@@ -380,6 +385,19 @@ Button(
     modifier = Modifier.fillMaxWidth()
 ) {
     Text("ASK MAYA OFFLINE")
+}
+Spacer(Modifier.height(12.dp))
+
+Button(
+    onClick = onDeviceInfo,
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(55.dp),
+    colors = ButtonDefaults.buttonColors(
+        containerColor = Color(0xFF00897B)
+    )
+) {
+    Text("📱 PHONE INFORMATION")
 }
 
             Spacer(Modifier.height(15.dp))
