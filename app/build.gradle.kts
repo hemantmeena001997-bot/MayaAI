@@ -44,4 +44,6 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     debugImplementation("androidx.compose.ui:ui-tooling")
 implementation(files("libs/sherpa-onnx-2.0.3.aar"))
+implementation("dev.rikka.shizuku:api:13.1.5")
+implementation("dev.rikka.shizuku:provider:13.1.5")
 }
