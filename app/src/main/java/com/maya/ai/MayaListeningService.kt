@@ -435,6 +435,24 @@ class MayaListeningService : Service() {
             }
         }
 
+        command.contains("chrome") ||
+command.contains("क्रोम") -> {
+    if (openMayaApp("chrome")) {
+        speakReply("Chrome खोल रही हूँ।")
+    } else {
+        speakReply("Chrome आपके फोन में नहीं मिला।")
+    }
+}
+
+command.contains("whatsapp") ||
+command.contains("व्हाट्सएप") ||
+command.contains("व्हाट्स ऐप") -> {
+    if (openMayaApp("whatsapp")) {
+        speakReply("WhatsApp खोल रही हूँ।")
+    } else {
+        speakReply("WhatsApp आपके फोन में नहीं मिला।")
+    }
+}
         command.contains("settings") ||
         command.contains("सेटिंग") -> {
             if (openMayaApp("settings")) {
@@ -501,9 +519,11 @@ class MayaListeningService : Service() {
 
     private fun openMayaApp(appName: String): Boolean {
     val packageName = when (appName) {
-        "youtube" -> "com.google.android.youtube"
-        "settings" -> "com.android.settings"
-        else -> return false
+    "youtube" -> "com.google.android.youtube"
+    "settings" -> "com.android.settings"
+    "chrome" -> "com.android.chrome"
+    "whatsapp" -> "com.whatsapp"
+    else -> return false
     }
 
     return try {
