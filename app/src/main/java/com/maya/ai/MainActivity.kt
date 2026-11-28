@@ -1,5 +1,6 @@
 
 package com.maya.ai
+import rikka.shizuku.Shizuku
 
 import android.Manifest
 import android.net.Uri
@@ -105,8 +106,34 @@ messageState.value =
             }
         }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
+    private val shizukuPermissionListener =
+    Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+        if (requestCode == 1001) {
+            messageState.value =
+                if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                    "MAYA को Shizuku की अनुमति मिल गई है।"
+                } else {
+                    "Shizuku की अनुमति नहीं मिली।"
+                }
+        }
+    }
+        override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+                Shizuku.addRequestPermissionResultListener(
+    shizukuPermissionListener
+)
+
+if (Shizuku.pingBinder()) {
+    if (Shizuku.checkSelfPermission() ==
+        PackageManager.PERMISSION_GRANTED
+    ) {
+        messageState.value = "Shizuku MAYA से जुड़ा हुआ है।"
+    } else {
+        Shizuku.requestPermission(1001)
+    }
+} else {
+    messageState.value = "पहले Shizuku Service चालू करें।"
+}
 
     val savedReply = getSharedPreferences(
         "maya_data",
@@ -133,7 +160,13 @@ messageState.value =
     checkMicrophonePermission()
     }
 
-    override fun onStart() {
+    override fun onDestroy() {
+    Shizuku.removeRequestPermissionResultListener(
+        shizukuPermissionListener
+    )
+    super.onDestroy()
+    }
+        override fun onStart() {
         super.onStart()
 
         if (!receiverRegistered) {
