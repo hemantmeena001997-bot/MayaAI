@@ -422,9 +422,33 @@ class MayaListeningService : Service() {
                         cancelConversationTimeout()
 
                         if (!words.isNullOrBlank()) {
-                            askMaya(words)
-                        } else {
-                            speakReply("माफ कीजिए, फिर से बोलिए।")
+
+    val command = words.lowercase(Locale.ROOT)
+
+    when {
+        command.contains("youtube") ||
+        command.contains("यूट्यूब") -> {
+            if (openMayaApp("youtube")) {
+                speakReply("YouTube खोल रही हूँ।")
+            } else {
+                speakReply("YouTube आपके फोन में नहीं मिला।")
+            }
+        }
+
+        command.contains("settings") ||
+        command.contains("सेटिंग") -> {
+            if (openMayaApp("settings")) {
+                speakReply("फोन की Settings खोल रही हूँ।")
+            } else {
+                speakReply("Settings नहीं खोल पाई।")
+            }
+        }
+
+        else -> askMaya(words)
+    }
+
+} else {
+    speakReply("माफ कीजिए, फिर से बोलिए।")
                         }
                     }
 
@@ -475,6 +499,28 @@ class MayaListeningService : Service() {
         }
     }
 
+    private fun openMayaApp(appName: String): Boolean {
+    val packageName = when (appName) {
+        "youtube" -> "com.google.android.youtube"
+        "settings" -> "com.android.settings"
+        else -> return false
+    }
+
+    return try {
+        val launchIntent =
+            packageManager.getLaunchIntentForPackage(packageName)
+
+        if (launchIntent != null) {
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(launchIntent)
+            true
+        } else {
+            false
+        }
+    } catch (e: Exception) {
+        false
+    }
+    }
     private fun askMaya(question: String) {
 
         updateNotification("MAYA सोच रही है...")
