@@ -42,7 +42,7 @@ jobs:
           tar -xjf model.tar.bz2 -C app/src/main/assets/
           rm model.tar.bz2
       - name: Build MAYA APK
-        run: gradle :app:assembleDebug
+        run: gradle :app:assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
