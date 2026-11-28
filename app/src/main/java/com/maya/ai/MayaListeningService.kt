@@ -1,4 +1,3 @@
-
 package com.maya.ai
 
 import android.Manifest
@@ -69,7 +68,6 @@ class MayaListeningService : Service() {
     private val workerUrl =
         "https://maya-ai-brain.hemantmeena001997.workers.dev/"
 
-    // ऐप की स्क्रीन पर संदेश भेजना
     private fun publishToApp(message: String) {
         val intent = Intent(ACTION_UI_UPDATE).apply {
             setPackage(packageName)
@@ -78,7 +76,6 @@ class MayaListeningService : Service() {
         sendBroadcast(intent)
     }
 
-    // जवाब को सुरक्षित करके स्क्रीन पर भेजना
     private fun publishReplyToApp(message: String) {
         getSharedPreferences("maya_data", MODE_PRIVATE)
             .edit()
@@ -423,58 +420,60 @@ class MayaListeningService : Service() {
 
                         if (!words.isNullOrBlank()) {
 
-    val command = words.lowercase(Locale.ROOT)
+                            val command = words.lowercase(Locale.ROOT)
 
-    when {
-        command.contains("youtube") ||
-        command.contains("यूट्यूब") -> {
-            if (openMayaApp("youtube")) {
-                speakReply("YouTube खोल रही हूँ।")
-            } else {
-                speakReply("YouTube आपके फोन में नहीं मिला।")
-            }
-        }
+                            when {
+                                command.contains("youtube") ||
+                                command.contains("यूट्यूब") -> {
+                                    if (openMayaApp("youtube")) {
+                                        speakReply("YouTube खोल रही हूँ।")
+                                    } else {
+                                        speakReply("YouTube आपके फोन में नहीं मिला।")
+                                    }
+                                }
 
-        command.contains("chrome") ||
-command.contains("क्रोम") -> {
-    if (openMayaApp("chrome")) {
-        speakReply("Chrome खोल रही हूँ।")
-    } else {
-        speakReply("Chrome आपके फोन में नहीं मिला।")
-    }
-}
+                                command.contains("chrome") ||
+                                command.contains("क्रोम") -> {
+                                    if (openMayaApp("chrome")) {
+                                        speakReply("Chrome खोल रही हूँ।")
+                                    } else {
+                                        speakReply("Chrome आपके फोन में नहीं मिला।")
+                                    }
+                                }
 
-command.contains("whatsapp") ||
-command.contains("व्हाट्सएप") ||
-command.contains("व्हाट्स ऐप") -> {
-    if (openMayaApp("whatsapp")) {
-        speakReply("WhatsApp खोल रही हूँ।")
-    } else {
-        speakReply("WhatsApp आपके फोन में नहीं मिला।")
-    }
-}
-        command.contains("camera") ||
-command.contains("कैमरा") -> {
-    if (openMayaApp("camera")) {
-        speakReply("कैमरा खोल रही हूँ।")
-    } else {
-        speakReply("कैमरा ऐप नहीं मिला।")
-    }
-}
-        command.contains("settings") ||
-        command.contains("सेटिंग") -> {
-            if (openMayaApp("settings")) {
-                speakReply("फोन की Settings खोल रही हूँ।")
-            } else {
-                speakReply("Settings नहीं खोल पाई।")
-            }
-        }
+                                command.contains("whatsapp") ||
+                                command.contains("व्हाट्सएप") ||
+                                command.contains("व्हाट्स ऐप") -> {
+                                    if (openMayaApp("whatsapp")) {
+                                        speakReply("WhatsApp खोल रही हूँ।")
+                                    } else {
+                                        speakReply("WhatsApp आपके फोन में नहीं मिला।")
+                                    }
+                                }
 
-        else -> askMaya(words)
-    }
+                                command.contains("camera") ||
+                                command.contains("कैमरा") -> {
+                                    if (openMayaApp("camera")) {
+                                        speakReply("कैमरा खोल रही हूँ।")
+                                    } else {
+                                        speakReply("कैमरा ऐप नहीं मिला।")
+                                    }
+                                }
 
-} else {
-    speakReply("माफ कीजिए, फिर से बोलिए।")
+                                command.contains("settings") ||
+                                command.contains("सेटिंग") -> {
+                                    if (openMayaApp("settings")) {
+                                        speakReply("फोन की Settings खोल रही हूँ।")
+                                    } else {
+                                        speakReply("Settings नहीं खोल पाई।")
+                                    }
+                                }
+
+                                else -> askMaya(words)
+                            }
+
+                        } else {
+                            speakReply("माफ कीजिए, फिर से बोलिए।")
                         }
                     }
 
@@ -525,47 +524,45 @@ command.contains("कैमरा") -> {
         }
     }
 
-    
-private fun openMayaApp(appName: String): Boolean {
-    val packageName = when (appName) {
-        "youtube" -> "com.google.android.youtube"
-        "settings" -> "com.android.settings"
-        "chrome" -> "com.android.chrome"
-        "whatsapp" -> "com.whatsapp"
-        "camera" -> return openDefaultCamera()
-        else -> return false
-    }
+    private fun openMayaApp(appName: String): Boolean {
+        val packageName = when (appName) {
+            "youtube" -> "com.google.android.youtube"
+            "settings" -> "com.android.settings"
+            "chrome" -> "com.android.chrome"
+            "whatsapp" -> "com.whatsapp"
+            "camera" -> return openDefaultCamera()
+            else -> return false
+        }
 
+        return try {
+            val launchIntent =
+                packageManager.getLaunchIntentForPackage(packageName)
 
-private fun openDefaultCamera(): Boolean {
-    return try {
-        val intent = Intent(
-            android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA
-        )
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        startActivity(intent)
-        true
-    } catch (e: Exception) {
-        false
-    }
-}
-
-
-    return try {
-        val launchIntent =
-            packageManager.getLaunchIntentForPackage(packageName)
-
-        if (launchIntent != null) {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(launchIntent)
-            true
-        } else {
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(launchIntent)
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
             false
         }
-    } catch (e: Exception) {
-        false
     }
+
+    private fun openDefaultCamera(): Boolean {
+        return try {
+            val intent = Intent(
+                android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA
+            )
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
+
     private fun askMaya(question: String) {
 
         updateNotification("MAYA सोच रही है...")
@@ -590,7 +587,7 @@ private fun openDefaultCamera(): Boolean {
                     )
 
                     val body = JSONObject()
-                        .put("message", question)
+            .put("message", question)
                         .toString()
 
                     connection.outputStream.use {
@@ -685,6 +682,7 @@ private fun openDefaultCamera(): Boolean {
     }
 
     private fun updateNotification(message: String) {
+
         val manager = getSystemService(
             NotificationManager::class.java
         )
@@ -716,8 +714,15 @@ private fun openDefaultCamera(): Boolean {
         serviceStopping = true
         wakeListening = false
         conversationMode = false
+        cancelConversationTimeout()
+
         try {
             recognizer?.destroy()
+        } catch (_: Exception) {
+        }
+
+        try {
+            audioRecord?.stop()
         } catch (_: Exception) {
         }
 
@@ -726,6 +731,8 @@ private fun openDefaultCamera(): Boolean {
             speaker?.shutdown()
         } catch (_: Exception) {
         }
+
+        networkExecutor.shutdownNow()
 
         super.onDestroy()
     }
