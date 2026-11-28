@@ -202,7 +202,21 @@ onDeviceInfo = {
         super.onStop()
     }
 
-    private fun checkMicrophonePermission() {
+    private fun checkCameraPermission() {
+    if (
+        ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    ) {
+        messageState.value = "Camera Permission तैयार है।"
+    } else {
+        cameraPermissionLauncher.launch(
+            Manifest.permission.CAMERA
+        )
+    }
+    }
+        private fun checkMicrophonePermission() {
         if (
             ContextCompat.checkSelfPermission(
                 this,
