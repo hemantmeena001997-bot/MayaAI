@@ -423,6 +423,39 @@ class MayaListeningService : Service() {
                             val command = words.lowercase(Locale.ROOT)
 
                             when {
+                                                                command.contains("flashlight") ||
+                                command.contains("फ्लैशलाइट") ||
+                                command.contains("torch") ||
+                                command.contains("टॉर्च") ||
+                                command.contains("लाइट") -> {
+
+                                    val turnOn =
+                                        command.contains("on") ||
+                                        command.contains("चालू") ||
+                                        command.contains("जलाओ")
+
+                                    val turnOff =
+                                        command.contains("off") ||
+                                        command.contains("बंद")
+
+                                    when {
+                                        turnOn -> {
+                                            speakReply(
+                                                MayaAndroidControl.setFlashlight(this@MayaListeningService, true)
+                                            )
+                                        }
+
+                                        turnOff -> {
+                                            speakReply(
+                                                MayaAndroidControl.setFlashlight(this@MayaListeningService, false)
+                                            )
+                                        }
+
+                                        else -> {
+                                            speakReply("बताइए, Flashlight चालू करनी है या बंद?")
+                                        }
+                                    }
+                                }
                                 command.contains("youtube") ||
                                 command.contains("यूट्यूब") -> {
                                     if (openMayaApp("youtube")) {
