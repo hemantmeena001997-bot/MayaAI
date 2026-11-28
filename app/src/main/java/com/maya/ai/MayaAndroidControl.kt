@@ -35,4 +35,12 @@ object MayaAndroidControl {
                 "MAYA Android Control तैयार है।"
         }
     }
+    fun getDeviceInfo(): String {
+        return """
+            फोन: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}
+            Android Version: ${android.os.Build.VERSION.RELEASE}
+            SDK: ${android.os.Build.VERSION.SDK_INT}
+            Shizuku: ${getStatus()}
+        """.trimIndent()
+    }
 }
