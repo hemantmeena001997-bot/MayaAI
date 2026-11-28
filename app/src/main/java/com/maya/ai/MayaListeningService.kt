@@ -525,16 +525,34 @@ command.contains("कैमरा") -> {
         }
     }
 
-    private fun openMayaApp(appName: String): Boolean {
+    
+private fun openMayaApp(appName: String): Boolean {
     val packageName = when (appName) {
-    "youtube" -> "com.google.android.youtube"
-    "settings" -> "com.android.settings"
-    "chrome" -> "com.android.chrome"
-    "whatsapp" -> "com.whatsapp"
+        "youtube" -> "com.google.android.youtube"
+        "settings" -> "com.android.settings"
+        "chrome" -> "com.android.chrome"
+        "whatsapp" -> "com.whatsapp"
         "camera" -> return openDefaultCamera()
-    else -> return false
+        else -> return false
     }
-    private fun openDefaultCamera(): Boolean {
+
+    return try {
+        val launchIntent =
+            packageManager.getLaunchIntentForPackage(packageName)
+
+        if (launchIntent != null) {
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(launchIntent)
+            true
+        } else {
+            false
+        }
+    } catch (e: Exception) {
+        false
+    }
+}
+
+private fun openDefaultCamera(): Boolean {
     return try {
         val intent = Intent(
             android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA
@@ -545,7 +563,8 @@ command.contains("कैमरा") -> {
     } catch (e: Exception) {
         false
     }
-    }
+}
+
 
     return try {
         val launchIntent =
