@@ -152,12 +152,12 @@ if (Shizuku.pingBinder()) {
                 modelPicker.launch(arrayOf("*/*"))
             },
             onAskOffline = { question ->
-                askOfflineMaya(question)
-            }
-            onDeviceInfo = {
+    askOfflineMaya(question)
+},
+onDeviceInfo = {
     messageState.value =
         MayaAndroidControl.getDeviceInfo()
-            }
+}
         )
     }
 
