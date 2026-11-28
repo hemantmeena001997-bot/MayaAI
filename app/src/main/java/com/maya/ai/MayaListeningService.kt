@@ -453,6 +453,14 @@ command.contains("व्हाट्स ऐप") -> {
         speakReply("WhatsApp आपके फोन में नहीं मिला।")
     }
 }
+        command.contains("camera") ||
+command.contains("कैमरा") -> {
+    if (openMayaApp("camera")) {
+        speakReply("कैमरा खोल रही हूँ।")
+    } else {
+        speakReply("कैमरा ऐप नहीं मिला।")
+    }
+}
         command.contains("settings") ||
         command.contains("सेटिंग") -> {
             if (openMayaApp("settings")) {
@@ -523,6 +531,7 @@ command.contains("व्हाट्स ऐप") -> {
     "settings" -> "com.android.settings"
     "chrome" -> "com.android.chrome"
     "whatsapp" -> "com.whatsapp"
+        "camera" -> "com.android.camera"
     else -> return false
     }
 
